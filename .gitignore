@@ -1,0 +1,18 @@
+windows/.env
+windows/data/
+windows/startup-error.log
+windows/Clicky.Windows.exe
+windows/*.pdb
+windows/*.log
+windows/*.mp3
+windows/*.wav
+.vs/
+bin/
+obj/
+*.user
+*.suo
+Thumbs.db
+.claude/
+coding-plans/
+codex output/
+playground/
