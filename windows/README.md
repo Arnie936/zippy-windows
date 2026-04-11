@@ -9,6 +9,21 @@ This is the native Windows client for Zippy. It calls Anthropic and ElevenLabs d
 - an ElevenLabs API key and voice ID
 - optional: local Whisper if you want `STT_PROVIDER=whisper`
 - optional: local Codex CLI if you want the `nimm codex ...` handoff flow
+- optional: local Claude Code CLI if you want the `nimm claude code ...` handoff flow
+
+## Local-First Direction
+
+Zippy can already run parts of its workflow locally, but the full in-app assistant path is not yet fully local.
+
+Available local pieces today:
+
+- local Whisper for speech-to-text
+- local Codex one-shot handoff
+- local Claude Code one-shot handoff
+
+The current screenshot-aware assistant response still uses Anthropic, and spoken playback still uses ElevenLabs.
+
+The intended local-first direction is a stack like local Whisper + local vision-capable chat model + local TTS.
 
 ## What works
 

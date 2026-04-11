@@ -40,6 +40,20 @@ It is a native WinForms desktop assistant that:
 Without Codex or Claude Code installed, Zippy still works for normal screenshot + voice workflows.
 Without local Whisper installed, Zippy still works if `STT_PROVIDER=elevenlabs`.
 
+## Local-First Direction
+
+Zippy is designed so it can evolve toward a fully local setup.
+
+Today, parts of the stack can already run locally:
+
+- speech-to-text via local Whisper
+- local Codex one-shot handoff
+- local Claude Code one-shot handoff
+
+The current in-app assistant flow still uses Anthropic for screenshot-aware chat and ElevenLabs for TTS.
+
+A future fully local stack would be expected to use pieces like local Whisper for transcription, a local vision-capable model such as Ollama for screenshot-aware chat, and a local TTS engine for spoken output.
+
 ## Project Layout
 
 ```text
@@ -143,6 +157,7 @@ What is not built yet:
 - Codex uses `playground/` as its default working directory unless `CODEX_WORKDIR` is set
 - Codex run logs are written to `codex output/zippy-codex-YYYYMMDD-HHMMSS.txt`
 - Claude Code run logs are written to `codex output/zippy-claude-code-YYYYMMDD-HHMMSS.txt`
+- Zippy can already run parts of the workflow locally, but the full in-app assistant path is not yet fully local
 - The executable is built from `windows/Clicky.Windows.cs`
 - `windows/Clicky.Windows.exe` is generated locally and should not be committed
 - The repository is licensed under MIT. See `LICENSE` and `NOTICE.md` for current licensing and provenance notes.
