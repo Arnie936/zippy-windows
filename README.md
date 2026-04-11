@@ -13,6 +13,7 @@ It is a native WinForms desktop assistant that:
 - plays TTS directly through ElevenLabs
 - can hand off one-shot tasks to local Codex when you say `nimm codex`
 - can attach current screenshots to Codex when you say variants of `nimm codex mit screen`
+- can hand off one-shot tasks to local Claude Code when you say `nimm claude code`
 - uses `playground/` as the default workspace for Codex-generated files, projects, and experiments
 - stores Codex run logs in `codex output/`
 - shows a tray icon
@@ -25,6 +26,7 @@ It is a native WinForms desktop assistant that:
 - an ElevenLabs API key and voice ID for speech features
 - optional: a local Whisper Python setup if you want to use `STT_PROVIDER=whisper`
 - optional: a local Codex CLI install if you want to use the `nimm codex ...` handoff flow
+- optional: a local Claude Code CLI install if you want to use the `nimm claude code ...` handoff flow
 
 ## Quick Start
 
@@ -35,7 +37,7 @@ It is a native WinForms desktop assistant that:
 5. Run `Build-Clicky.cmd`.
 6. Run `Start-Clicky.cmd`.
 
-Without Codex installed, Zippy still works for normal screenshot + voice workflows.
+Without Codex or Claude Code installed, Zippy still works for normal screenshot + voice workflows.
 Without local Whisper installed, Zippy still works if `STT_PROVIDER=elevenlabs`.
 
 ## Project Layout
@@ -80,6 +82,8 @@ windows/
   Optional. Use `elevenlabs` or `whisper`.
 - `CODEX_COMMAND`
   Optional. Path or command name for the local Codex CLI command shim.
+- `CLAUDE_CODE_COMMAND`
+  Optional. Path or command name for the local Claude Code CLI command.
 - `CODEX_WORKDIR`
   Optional. Defaults to `playground/`.
 - `CODEX_TIMEOUT_SECONDS`
@@ -105,6 +109,7 @@ What works:
 - ElevenLabs playback
 - local Codex one-shot handoff via `nimm codex ...`
 - optional Codex handoff with attached screenshots via `nimm codex mit screen ...`
+- local Claude Code one-shot handoff via `nimm claude code ...`
 - Codex writes its generated files into `playground/` by default
 - Codex output logs written to `codex output/`
 - tray app
@@ -114,6 +119,8 @@ What works:
 
 - If `codex.ps1` is available locally, prompts that start with `nimm codex ...` are handed off to a one-shot local Codex run.
 - If Codex is not installed, the normal Zippy assistant still works. Only the Codex handoff flow is unavailable.
+- If Claude Code is installed locally, prompts that start with `nimm claude code ...` are handed off to a one-shot local Claude Code run.
+- If Claude Code is not installed, the normal Zippy assistant still works. Only the Claude Code handoff flow is unavailable.
 
 ## Known Limitations
 
@@ -121,6 +128,7 @@ What works:
 - no installer yet
 - the Codex handoff is currently a one-shot background run, not a persistent multi-turn session
 - the Codex trigger is optimized for German speech variants around `nimm codex`
+- the Claude Code trigger is optimized for German speech variants around `nimm claude code` and common STT variants like `cloud code`
 - speech and vision features depend on external API availability
 
 What is not built yet:
@@ -134,6 +142,7 @@ What is not built yet:
 - Local settings are stored in `windows/data/settings.json`
 - Codex uses `playground/` as its default working directory unless `CODEX_WORKDIR` is set
 - Codex run logs are written to `codex output/zippy-codex-YYYYMMDD-HHMMSS.txt`
+- Claude Code run logs are written to `codex output/zippy-claude-code-YYYYMMDD-HHMMSS.txt`
 - The executable is built from `windows/Clicky.Windows.cs`
 - `windows/Clicky.Windows.exe` is generated locally and should not be committed
 - The repository is licensed under MIT. See `LICENSE` and `NOTICE.md` for current licensing and provenance notes.

@@ -15,6 +15,8 @@ The app is a WinForms desktop client in `windows/` that:
 - calls Anthropic directly for screenshot + vision chat
 - calls ElevenLabs directly for TTS
 - can route one-shot requests to a local Codex CLI run when the prompt contains `nimm codex`
+- can route one-shot requests to a local Claude Code CLI run when the prompt contains `nimm claude code`
+- can attach screenshots to Codex runs for prompts like `nimm codex mit screen`
 - uses `playground/` in the repo root as the default Codex working directory
 - writes Codex run logs to `codex output/` in the repo root
 - stores non-secret local settings in `windows/data/settings.json`
@@ -29,6 +31,7 @@ The app is a WinForms desktop client in `windows/` that:
 | `windows/Start-Clicky.cmd` | Launches the app, building first if needed. |
 | `windows/.env.example` | Template for local API secrets. |
 | `windows/README.md` | Windows app usage notes. |
+| `NOTICE.md` | Short provenance note for the restarted Zippy repository. |
 | `.gitignore` | Ignores local secrets, generated state, and Windows build artifacts. |
 
 ## Build & Run

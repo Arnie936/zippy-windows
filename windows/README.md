@@ -22,6 +22,7 @@ This is the native Windows client for Zippy. It calls Anthropic and ElevenLabs d
 - play TTS directly through ElevenLabs when enabled
 - route prompts containing `nimm codex` to a local Codex one-shot run
 - attach screenshots to Codex for prompts like `nimm codex mit screen ...`
+- route prompts containing `nimm claude code` to a local Claude Code one-shot run
 - write Codex-generated files into `playground/` by default
 - write Codex run logs to `codex output/`
 - keep a short conversation history in memory
@@ -70,6 +71,7 @@ Or run:
    - `ELEVENLABS_VOICE_ID`
    - optional: `STT_PROVIDER` (`elevenlabs` or `whisper`)
    - optional: `CODEX_COMMAND`
+   - optional: `CLAUDE_CODE_COMMAND`
    - optional: `CODEX_WORKDIR`
    - optional: `CODEX_TIMEOUT_SECONDS`
    - optional: `WHISPER_PYTHON`
@@ -84,6 +86,7 @@ Or run:
 8. Or use the global key from `.env`, default `F8`: hold to speak, release to transcribe.
 9. To hand off a one-shot local Codex task, start the prompt with `nimm codex ...`.
 10. To hand off a Codex task with screenshots attached, use a phrase like `nimm codex mit screen ...`.
+11. To hand off a one-shot local Claude Code task, use a phrase like `nimm claude code ...`.
 
 Without Codex installed, Zippy still works for normal assistant tasks.
 Without local Whisper installed, Zippy still works if `STT_PROVIDER=elevenlabs`.
@@ -100,6 +103,8 @@ Without local Whisper installed, Zippy still works if `STT_PROVIDER=elevenlabs`.
 Default: `whisper`
 - `CODEX_COMMAND`
 Default: `codex.cmd`
+- `CLAUDE_CODE_COMMAND`
+Default: `claude`
 - `CODEX_WORKDIR`
 Default: `playground/` in the repo root above `windows/`
 - `CODEX_TIMEOUT_SECONDS`

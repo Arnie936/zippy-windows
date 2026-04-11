@@ -127,6 +127,7 @@ namespace ClickyWindows
         public string ElevenLabsVoiceId { get; set; }
         public string SpeechToTextProvider { get; set; }
         public string CodexCommand { get; set; }
+        public string ClaudeCodeCommand { get; set; }
         public string CodexWorkingDirectory { get; set; }
         public int CodexTimeoutSeconds { get; set; }
         public string WhisperPythonCommand { get; set; }
@@ -178,6 +179,7 @@ namespace ClickyWindows
                 ElevenLabsVoiceId = GetValueOrEmpty(envValues, "ELEVENLABS_VOICE_ID"),
                 SpeechToTextProvider = GetSpeechToTextProvider(envValues),
                 CodexCommand = GetValueOrDefault(envValues, "CODEX_COMMAND", "codex.cmd"),
+                ClaudeCodeCommand = GetValueOrDefault(envValues, "CLAUDE_CODE_COMMAND", "claude"),
                 CodexWorkingDirectory = GetValueOrDefault(envValues, "CODEX_WORKDIR", GetDefaultCodexWorkingDirectory()),
                 CodexTimeoutSeconds = GetIntValueOrDefault(envValues, "CODEX_TIMEOUT_SECONDS", 900),
                 WhisperPythonCommand = GetValueOrDefault(envValues, "WHISPER_PYTHON", "python"),
@@ -1212,6 +1214,175 @@ if pointing would not help, append [POINT:none].";
         }
     }
 
+    internal static class ClaudeCodeClient
+    {
+        private const string CompletionMessage = "claude code session ist jetzt abgeschlossen";
+        private static readonly Regex TriggerRegex = new Regex(@"\b(?:nimm|nim|nehm|mit)\s+(?:den\s+)?(?:claude|cloud|clod|klod|klode)\s+code\b[\s,:-]*", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        public static bool IsTriggered(string prompt)
+        {
+            return !string.IsNullOrWhiteSpace(prompt) && TriggerRegex.IsMatch(NormalizePrompt(prompt));
+        }
+
+        public static string RemoveTrigger(string prompt)
+        {
+            if (string.IsNullOrWhiteSpace(prompt))
+            {
+                return string.Empty;
+            }
+
+            return TriggerRegex.Replace(NormalizePrompt(prompt), string.Empty, 1).Trim();
+        }
+
+        public static string GetCompletionMessage()
+        {
+            return CompletionMessage;
+        }
+
+        public static async Task<CodexRunResult> RunAsync(EnvironmentConfiguration environmentConfiguration, string prompt)
+        {
+            string outputDirectory = GetOutputDirectory();
+            Directory.CreateDirectory(outputDirectory);
+            string timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
+            string outputFilePath = Path.Combine(outputDirectory, "zippy-claude-code-" + timestamp + ".txt");
+            string workingDirectory = ResolveWorkingDirectory(environmentConfiguration);
+
+            ProcessStartInfo startInfo = new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                WorkingDirectory = workingDirectory,
+                UseShellExecute = false,
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
+            AddArgument(startInfo, "/c");
+            AddArgument(startInfo, ResolveCommand(environmentConfiguration));
+            AddArgument(startInfo, "-p");
+            AddArgument(startInfo, "--permission-mode");
+            AddArgument(startInfo, "bypassPermissions");
+
+            using (Process process = new Process())
+            {
+                process.StartInfo = startInfo;
+
+                if (!process.Start())
+                {
+                    throw new InvalidOperationException("Failed to start the local Claude Code process.");
+                }
+
+                byte[] promptBytes = new UTF8Encoding(false).GetBytes(prompt ?? string.Empty);
+                await process.StandardInput.BaseStream.WriteAsync(promptBytes, 0, promptBytes.Length).ConfigureAwait(false);
+                await process.StandardInput.BaseStream.FlushAsync().ConfigureAwait(false);
+                process.StandardInput.Close();
+
+                Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync();
+                Task<string> standardErrorTask = process.StandardError.ReadToEndAsync();
+                bool exited = await Task.Run(() => process.WaitForExit(environmentConfiguration.CodexTimeoutSeconds * 1000)).ConfigureAwait(false);
+
+                if (!exited)
+                {
+                    try
+                    {
+                        process.Kill();
+                    }
+                    catch
+                    {
+                    }
+
+                    throw new InvalidOperationException("Claude Code timed out before finishing.");
+                }
+
+                string standardOutput = await standardOutputTask.ConfigureAwait(false);
+                string standardError = await standardErrorTask.ConfigureAwait(false);
+                WriteOutputFile(outputFilePath, workingDirectory, prompt, process.ExitCode, standardOutput, standardError);
+
+                if (process.ExitCode != 0)
+                {
+                    throw new InvalidOperationException("Claude Code failed. Check the output file: " + outputFilePath);
+                }
+
+                return new CodexRunResult
+                {
+                    ExitCode = process.ExitCode,
+                    OutputFilePath = outputFilePath
+                };
+            }
+        }
+
+        private static string NormalizePrompt(string prompt)
+        {
+            string normalized = prompt.ToLowerInvariant();
+            normalized = normalized.Replace("cloud code", "claude code");
+            normalized = normalized.Replace("clod code", "claude code");
+            normalized = normalized.Replace("klod code", "claude code");
+            normalized = normalized.Replace("klode code", "claude code");
+            normalized = normalized.Replace("nehm", "nimm");
+            normalized = Regex.Replace(normalized, @"\s+", " ").Trim();
+            return normalized;
+        }
+
+        private static string ResolveWorkingDirectory(EnvironmentConfiguration environmentConfiguration)
+        {
+            if (!string.IsNullOrWhiteSpace(environmentConfiguration.CodexWorkingDirectory))
+            {
+                Directory.CreateDirectory(environmentConfiguration.CodexWorkingDirectory);
+                return environmentConfiguration.CodexWorkingDirectory;
+            }
+
+            string defaultWorkingDirectory = Path.Combine(Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..")), "playground");
+            Directory.CreateDirectory(defaultWorkingDirectory);
+            return defaultWorkingDirectory;
+        }
+
+        private static string GetOutputDirectory()
+        {
+            return Path.Combine(Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..")), "codex output");
+        }
+
+        private static string ResolveCommand(EnvironmentConfiguration environmentConfiguration)
+        {
+            if (!string.IsNullOrWhiteSpace(environmentConfiguration.ClaudeCodeCommand) && File.Exists(environmentConfiguration.ClaudeCodeCommand))
+            {
+                return environmentConfiguration.ClaudeCodeCommand;
+            }
+
+            return environmentConfiguration.ClaudeCodeCommand;
+        }
+
+        private static void AddArgument(ProcessStartInfo startInfo, string value)
+        {
+            startInfo.Arguments = string.IsNullOrWhiteSpace(startInfo.Arguments)
+                ? QuoteArgument(value)
+                : startInfo.Arguments + " " + QuoteArgument(value);
+        }
+
+        private static void WriteOutputFile(string outputFilePath, string workingDirectory, string prompt, int exitCode, string standardOutput, string standardError)
+        {
+            StringBuilder builder = new StringBuilder();
+            builder.AppendLine("zippy claude code run");
+            builder.AppendLine("timestamp: " + DateTime.Now.ToString("O"));
+            builder.AppendLine("working_directory: " + workingDirectory);
+            builder.AppendLine("exit_code: " + exitCode.ToString());
+            builder.AppendLine();
+            builder.AppendLine("prompt:");
+            builder.AppendLine(prompt);
+            builder.AppendLine();
+            builder.AppendLine("stdout:");
+            builder.AppendLine(string.IsNullOrWhiteSpace(standardOutput) ? "<empty>" : standardOutput.Trim());
+            builder.AppendLine();
+            builder.AppendLine("stderr:");
+            builder.AppendLine(string.IsNullOrWhiteSpace(standardError) ? "<empty>" : standardError.Trim());
+            File.WriteAllText(outputFilePath, builder.ToString(), Encoding.UTF8);
+        }
+
+        private static string QuoteArgument(string value)
+        {
+            return "\"" + (value ?? string.Empty).Replace("\"", "\\\"") + "\"";
+        }
+    }
+
     internal sealed class PushToTalkHotKeyListener : IDisposable
     {
         private const int WhKeyboardLl = 13;
@@ -1989,6 +2160,12 @@ if pointing would not help, append [POINT:none].";
                 EnsureEnvironmentIsReady();
                 SetCompanionState(CompanionVisualState.Thinking);
 
+                if (ClaudeCodeClient.IsTriggered(prompt))
+                {
+                    await RunClaudeCodeFlowAsync(prompt);
+                    return;
+                }
+
                 if (CodexClient.IsTriggered(prompt))
                 {
                     await RunCodexFlowAsync(prompt);
@@ -2073,6 +2250,33 @@ if pointing would not help, append [POINT:none].";
             );
             await SpeakResponseAsync(completionMessage);
             DeleteFilesQuietly(temporaryImagePaths);
+        }
+
+        private async Task RunClaudeCodeFlowAsync(string prompt)
+        {
+            string claudeCodePrompt = ClaudeCodeClient.RemoveTrigger(prompt);
+            if (string.IsNullOrWhiteSpace(claudeCodePrompt))
+            {
+                throw new InvalidOperationException("Say what Claude Code should do after 'nimm claude code'.");
+            }
+
+            _promptTextBox.Text = claudeCodePrompt;
+            _promptTextBox.SelectionStart = _promptTextBox.TextLength;
+            _promptTextBox.ScrollToCaret();
+
+            SetStatus("starting claude code...", Color.FromArgb(235, 210, 120));
+            CodexRunResult result = await ClaudeCodeClient.RunAsync(_environmentConfiguration, claudeCodePrompt);
+
+            string completionMessage = ClaudeCodeClient.GetCompletionMessage();
+            _responseTextBox.Text = completionMessage;
+            SetStatus("claude code done, saved to codex output", Color.FromArgb(93, 212, 136));
+            ShowCompanionMessage(
+                completionMessage,
+                _settings.SpeakResponses ? CompanionVisualState.Speaking : CompanionVisualState.Idle,
+                _settings.SpeakResponses ? 9000 : 7200,
+                CompanionVisualState.Idle
+            );
+            await SpeakResponseAsync(completionMessage);
         }
 
         private static List<string> SaveCodexScreenCaptures(IList<ScreenCaptureInfo> screenCaptures)
