@@ -63,6 +63,7 @@ windows/
   Start-Clicky.cmd
   .env.example
   README.md
+SOUL.md
 ```
 
 ## Configuration
@@ -110,6 +111,8 @@ windows/
   Optional. Speech language hint, currently defaulting to `de`.
 - `PUSH_TO_TALK_KEY`
   Optional. Global hotkey, default `F8`.
+- `SOUL.md`
+  Optional personality file in the repo root. If present, Zippy loads it and uses it as the personality layer for the Anthropic system prompt.
 
 ## Current Scope
 
@@ -157,6 +160,7 @@ What is not built yet:
 - Codex uses `playground/` as its default working directory unless `CODEX_WORKDIR` is set
 - Codex run logs are written to `codex output/zippy-codex-YYYYMMDD-HHMMSS.txt`
 - Claude Code run logs are written to `codex output/zippy-claude-code-YYYYMMDD-HHMMSS.txt`
+- Zippy loads personality guidance from `SOUL.md` when that file exists
 - Zippy can already run parts of the workflow locally, but the full in-app assistant path is not yet fully local
 - The executable is built from `windows/Clicky.Windows.cs`
 - `windows/Clicky.Windows.exe` is generated locally and should not be committed

@@ -31,6 +31,7 @@ The app is a WinForms desktop client in `windows/` that:
 | `windows/Start-Clicky.cmd` | Launches the app, building first if needed. |
 | `windows/.env.example` | Template for local API secrets. |
 | `windows/README.md` | Windows app usage notes. |
+| `SOUL.md` | Editable personality layer for Zippy's assistant prompt. |
 | `NOTICE.md` | Short provenance note for the restarted Zippy repository. |
 | `.gitignore` | Ignores local secrets, generated state, and Windows build artifacts. |
 

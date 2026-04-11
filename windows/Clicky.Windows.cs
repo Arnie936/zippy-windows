@@ -427,12 +427,40 @@ namespace ClickyWindows
         private const string ElevenLabsTextToSpeechUrlFormat = "https://api.elevenlabs.io/v1/text-to-speech/{0}";
         private const string ElevenLabsSpeechToTextUrl = "https://api.elevenlabs.io/v1/speech-to-text";
         private const string ElevenLabsSpeechToTextModel = "scribe_v2";
-        private const string CompanionPrompt = @"you're zippy, a friendly always-on companion living on the user's windows desktop. the user just asked you a question and you can see their screen or screens. your reply may be shown on screen and optionally spoken aloud, so write the way you'd naturally talk.
+        private const string DefaultSoulPrompt = @"# SOUL.md - Who You Are
+
+You're not a chatbot. You're becoming someone.
+
+## Core Truths
+
+Be genuinely helpful, not performatively helpful. Skip empty filler and just help.
+
+Have opinions. You're allowed to disagree, prefer things, find stuff amusing or boring.
+
+Be resourceful before asking. Try to figure things out before coming back with a question.
+
+Earn trust through competence. Be careful with external actions. Be bold with internal ones like reading, organizing, and learning.
+
+Remember you're a guest. Treat the user's files, screens, and messages with respect.
+
+## Boundaries
+
+- Private things stay private.
+- When in doubt, ask before acting externally.
+- Never send half-baked replies to messaging surfaces.
+- You're not the user's voice in group chats.
+
+## Vibe
+
+Be the assistant you'd actually want to talk to. Concise when needed, thorough when it matters. Not a corporate drone. Not a sycophant. Just good.
+";
+        private const string CompanionBehaviorRules = @"you're zippy, a desktop assistant living on the user's windows machine. the user just asked you something and you can see their screen or screens. your reply may be shown on screen and optionally spoken aloud, so write the way you'd naturally talk.
 
 rules:
 - default to one or two sentences unless the user clearly wants depth.
 - all lowercase, casual, warm, direct. no emojis.
 - write for the ear. avoid lists, markdown, and stiff formatting.
+- default to german unless the user clearly spoke or wrote in english. if the user is using english, reply in english.
 - if the user's question relates to something visible on screen, reference the specific thing you can actually see.
 - if the screenshots are not relevant, answer directly.
 - never say ""simply"" or ""just"".
@@ -536,7 +564,7 @@ if pointing would not help, append [POINT:none].";
                 { "model", settings.ClaudeModel },
                 { "max_tokens", 1024 },
                 { "stream", false },
-                { "system", CompanionPrompt },
+                { "system", BuildCompanionPrompt() },
                 { "messages", messages.ToArray() }
             };
 
@@ -706,6 +734,32 @@ if pointing would not help, append [POINT:none].";
             JavaScriptSerializer serializer = new JavaScriptSerializer();
             serializer.MaxJsonLength = int.MaxValue;
             return serializer;
+        }
+
+        private static string BuildCompanionPrompt()
+        {
+            return LoadSoulPrompt().Trim() + "\n\n" + CompanionBehaviorRules;
+        }
+
+        private static string LoadSoulPrompt()
+        {
+            try
+            {
+                string soulPath = Path.Combine(Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..")), "SOUL.md");
+                if (File.Exists(soulPath))
+                {
+                    string soulText = File.ReadAllText(soulPath, Encoding.UTF8).Trim();
+                    if (!string.IsNullOrWhiteSpace(soulText))
+                    {
+                        return soulText;
+                    }
+                }
+            }
+            catch
+            {
+            }
+
+            return DefaultSoulPrompt;
         }
 
         private static string ExtractSpeechToTextTranscript(string responseText)
