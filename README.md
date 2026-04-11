@@ -17,6 +17,26 @@ It is a native WinForms desktop assistant that:
 - shows a tray icon
 - supports a global push-to-talk hotkey
 
+## Requirements
+
+- Windows
+- an Anthropic API key for screen-aware chat
+- an ElevenLabs API key and voice ID for speech features
+- optional: a local Whisper Python setup if you want to use `STT_PROVIDER=whisper`
+- optional: a local Codex CLI install if you want to use the `nimm codex ...` handoff flow
+
+## Quick Start
+
+1. Clone the repository.
+2. Open [`windows`](/C:/Users/Arnold/Desktop/clip%20advanced/clicky/windows).
+3. Copy `.env.example` to `.env`.
+4. Fill in the required API keys.
+5. Run `Build-Clicky.cmd`.
+6. Run `Start-Clicky.cmd`.
+
+Without Codex installed, Zippy still works for normal screenshot + voice workflows.
+Without local Whisper installed, Zippy still works if `STT_PROVIDER=elevenlabs`.
+
 ## Project Layout
 
 ```text
@@ -28,7 +48,7 @@ windows/
   README.md
 ```
 
-## Setup
+## Configuration
 
 1. Open `windows/`.
 2. Copy `.env.example` to `.env`.
@@ -47,6 +67,31 @@ windows/
 4. Run `Build-Clicky.cmd`.
 5. Run `Start-Clicky.cmd`.
 
+## `.env` Variables
+
+- `ANTHROPIC_API_KEY`
+  Required for the main screenshot + vision assistant flow.
+- `ELEVENLABS_API_KEY`
+  Required for speech-to-text with ElevenLabs and for TTS playback.
+- `ELEVENLABS_VOICE_ID`
+  Required for ElevenLabs TTS playback.
+- `STT_PROVIDER`
+  Optional. Use `elevenlabs` or `whisper`.
+- `CODEX_COMMAND`
+  Optional. Path or command name for the local Codex CLI PowerShell entry point.
+- `CODEX_WORKDIR`
+  Optional. Defaults to `playground/`.
+- `CODEX_TIMEOUT_SECONDS`
+  Optional. Timeout for one-shot Codex runs.
+- `WHISPER_PYTHON`
+  Optional. Python command used for local Whisper.
+- `WHISPER_MODEL`
+  Optional. Whisper model name, for example `base`.
+- `WHISPER_LANGUAGE`
+  Optional. Speech language hint, currently defaulting to `de`.
+- `PUSH_TO_TALK_KEY`
+  Optional. Global hotkey, default `F8`.
+
 ## Current Scope
 
 What works:
@@ -62,6 +107,19 @@ What works:
 - Codex output logs written to `codex output/`
 - tray app
 - hold-to-talk button and hotkey
+
+## With And Without Codex
+
+- If `codex.ps1` is available locally, prompts that start with `nimm codex ...` are handed off to a one-shot local Codex run.
+- If Codex is not installed, the normal Zippy assistant still works. Only the Codex handoff flow is unavailable.
+
+## Known Limitations
+
+- Windows-only
+- no installer yet
+- the Codex handoff is currently a one-shot background run, not a persistent multi-turn session
+- the Codex trigger is optimized for German speech variants around `nimm codex`
+- speech and vision features depend on external API availability
 
 What is not built yet:
 

@@ -2,6 +2,14 @@
 
 This is the native Windows client for Zippy. It calls Anthropic and ElevenLabs directly, supports ElevenLabs speech-to-text or local Whisper for speech input, and can hand one-shot tasks to a local Codex CLI run.
 
+## Requirements
+
+- Windows
+- an Anthropic API key
+- an ElevenLabs API key and voice ID
+- optional: local Whisper if you want `STT_PROVIDER=whisper`
+- optional: local Codex CLI if you want the `nimm codex ...` handoff flow
+
 ## What works
 
 - system tray app
@@ -75,6 +83,9 @@ Or run:
 8. Or use the global key from `.env`, default `F8`: hold to speak, release to transcribe.
 9. To hand off a one-shot local Codex task, start the prompt with `nimm codex ...`.
 
+Without Codex installed, Zippy still works for normal assistant tasks.
+Without local Whisper installed, Zippy still works if `STT_PROVIDER=elevenlabs`.
+
 ## Required Keys
 
 - `ANTHROPIC_API_KEY`
@@ -111,3 +122,10 @@ Default: `F8`
 - Codex runs are saved to `codex output/zippy-codex-YYYYMMDD-HHMMSS.txt`
 - The app is built with the classic .NET Framework compiler already available on this machine
 - `Clicky.Windows.exe` is a local build artifact and should stay out of git
+
+## Known Limitations
+
+- Windows-only
+- no installer yet
+- Codex runs are one-shot background jobs
+- speech and vision features depend on external API availability
