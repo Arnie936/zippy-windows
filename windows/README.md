@@ -21,6 +21,7 @@ This is the native Windows client for Zippy. It calls Anthropic and ElevenLabs d
 - show the answer in-app
 - play TTS directly through ElevenLabs when enabled
 - route prompts containing `nimm codex` to a local Codex one-shot run
+- attach screenshots to Codex for prompts like `nimm codex mit screen ...`
 - write Codex-generated files into `playground/` by default
 - write Codex run logs to `codex output/`
 - keep a short conversation history in memory
@@ -82,6 +83,7 @@ Or run:
 7. For speech mode: hold the button while speaking, then release to transcribe.
 8. Or use the global key from `.env`, default `F8`: hold to speak, release to transcribe.
 9. To hand off a one-shot local Codex task, start the prompt with `nimm codex ...`.
+10. To hand off a Codex task with screenshots attached, use a phrase like `nimm codex mit screen ...`.
 
 Without Codex installed, Zippy still works for normal assistant tasks.
 Without local Whisper installed, Zippy still works if `STT_PROVIDER=elevenlabs`.
@@ -97,7 +99,7 @@ Without local Whisper installed, Zippy still works if `STT_PROVIDER=elevenlabs`.
 - `STT_PROVIDER`
 Default: `whisper`
 - `CODEX_COMMAND`
-Default: `codex.ps1`
+Default: `codex.cmd`
 - `CODEX_WORKDIR`
 Default: `playground/` in the repo root above `windows/`
 - `CODEX_TIMEOUT_SECONDS`

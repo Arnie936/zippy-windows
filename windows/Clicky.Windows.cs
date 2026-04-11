@@ -177,7 +177,7 @@ namespace ClickyWindows
                 ElevenLabsApiKey = GetValueOrEmpty(envValues, "ELEVENLABS_API_KEY"),
                 ElevenLabsVoiceId = GetValueOrEmpty(envValues, "ELEVENLABS_VOICE_ID"),
                 SpeechToTextProvider = GetSpeechToTextProvider(envValues),
-                CodexCommand = GetValueOrDefault(envValues, "CODEX_COMMAND", "codex.ps1"),
+                CodexCommand = GetValueOrDefault(envValues, "CODEX_COMMAND", "codex.cmd"),
                 CodexWorkingDirectory = GetValueOrDefault(envValues, "CODEX_WORKDIR", GetDefaultCodexWorkingDirectory()),
                 CodexTimeoutSeconds = GetIntValueOrDefault(envValues, "CODEX_TIMEOUT_SECONDS", 900),
                 WhisperPythonCommand = GetValueOrDefault(envValues, "WHISPER_PYTHON", "python"),
@@ -316,6 +316,7 @@ namespace ClickyWindows
         public int ScreenshotHeight { get; set; }
         public Rectangle DisplayBounds { get; set; }
         public string ImageBase64 { get; set; }
+        public byte[] ImageBytes { get; set; }
     }
 
     internal enum CompanionVisualState
@@ -392,8 +393,9 @@ namespace ClickyWindows
                             ScreenshotWidth = scaledWidth,
                             ScreenshotHeight = scaledHeight,
                             DisplayBounds = bounds,
-                            ImageBase64 = Convert.ToBase64String(EncodeJpeg(scaledBitmap, 82L))
+                            ImageBytes = EncodeJpeg(scaledBitmap, 82L)
                         });
+                        captures[captures.Count - 1].ImageBase64 = Convert.ToBase64String(captures[captures.Count - 1].ImageBytes);
                     }
                 }
             }
@@ -1012,10 +1014,12 @@ if pointing would not help, append [POINT:none].";
     {
         private const string CompletionMessage = "codex session ist jetzt abgeschlossen";
         private static readonly Regex TriggerRegex = new Regex(@"\b(?:nimm|nim|nehm|nehm|mit)\s+(?:den\s+)?(?:codex|kodex|kodes|codecs|kodexx)\b[\s,:-]*", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        private static readonly Regex TriggerWithScreenRegex = new Regex(@"\b(?:nimm|nim|nehm|mit)\s+(?:den\s+)?(?:codex|kodex|kodes)\s+(?:mit|mids?|plus)\s+(?:screen|screenshot|bild|main\s*screen|hauptbildschirm|hauptscreen)\b[\s,:-]*", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         public static bool IsTriggered(string prompt)
         {
-            return !string.IsNullOrWhiteSpace(prompt) && TriggerRegex.IsMatch(NormalizePrompt(prompt));
+            string normalizedPrompt = NormalizePrompt(prompt);
+            return !string.IsNullOrWhiteSpace(prompt) && (TriggerWithScreenRegex.IsMatch(normalizedPrompt) || TriggerRegex.IsMatch(normalizedPrompt));
         }
 
         public static string RemoveTrigger(string prompt)
@@ -1026,7 +1030,13 @@ if pointing would not help, append [POINT:none].";
             }
 
             string normalizedPrompt = NormalizePrompt(prompt);
+            normalizedPrompt = TriggerWithScreenRegex.Replace(normalizedPrompt, string.Empty, 1).Trim();
             return TriggerRegex.Replace(normalizedPrompt, string.Empty, 1).Trim();
+        }
+
+        public static bool ShouldAttachScreens(string prompt)
+        {
+            return !string.IsNullOrWhiteSpace(prompt) && TriggerWithScreenRegex.IsMatch(NormalizePrompt(prompt));
         }
 
         public static string GetCompletionMessage()
@@ -1047,25 +1057,45 @@ if pointing would not help, append [POINT:none].";
             return normalized;
         }
 
-        public static async Task<CodexRunResult> RunAsync(EnvironmentConfiguration environmentConfiguration, string prompt)
+        public static async Task<CodexRunResult> RunAsync(EnvironmentConfiguration environmentConfiguration, string prompt, IList<string> imagePaths = null)
         {
             string outputDirectory = GetCodexOutputDirectory();
             Directory.CreateDirectory(outputDirectory);
             string timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
             string outputFilePath = Path.Combine(outputDirectory, "zippy-codex-" + timestamp + ".txt");
             string workingDirectory = ResolveWorkingDirectory(environmentConfiguration);
-            string arguments = BuildArguments(environmentConfiguration, workingDirectory, outputFilePath, prompt);
 
             ProcessStartInfo startInfo = new ProcessStartInfo
             {
-                FileName = "powershell.exe",
-                Arguments = arguments,
+                FileName = "cmd.exe",
                 WorkingDirectory = workingDirectory,
                 UseShellExecute = false,
+                RedirectStandardInput = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 CreateNoWindow = true
             };
+            AddArgument(startInfo, "/c");
+            AddArgument(startInfo, ResolveCodexCommand(environmentConfiguration));
+            AddArgument(startInfo, "exec");
+            AddArgument(startInfo, "--full-auto");
+            AddArgument(startInfo, "--skip-git-repo-check");
+            AddArgument(startInfo, "-C");
+            AddArgument(startInfo, workingDirectory);
+            AddArgument(startInfo, "-o");
+            AddArgument(startInfo, outputFilePath);
+            if (imagePaths != null)
+            {
+                foreach (string imagePath in imagePaths)
+                {
+                    if (!string.IsNullOrWhiteSpace(imagePath))
+                    {
+                        AddArgument(startInfo, "-i");
+                        AddArgument(startInfo, imagePath);
+                    }
+                }
+            }
+            AddArgument(startInfo, "-");
 
             using (Process process = new Process())
             {
@@ -1075,6 +1105,11 @@ if pointing would not help, append [POINT:none].";
                 {
                     throw new InvalidOperationException("Failed to start the local Codex process.");
                 }
+
+                byte[] promptBytes = new UTF8Encoding(false).GetBytes(prompt ?? string.Empty);
+                await process.StandardInput.BaseStream.WriteAsync(promptBytes, 0, promptBytes.Length).ConfigureAwait(false);
+                await process.StandardInput.BaseStream.FlushAsync().ConfigureAwait(false);
+                process.StandardInput.Close();
 
                 Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync();
                 Task<string> standardErrorTask = process.StandardError.ReadToEndAsync();
@@ -1128,23 +1163,11 @@ if pointing would not help, append [POINT:none].";
             return Path.Combine(Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..")), "codex output");
         }
 
-        private static string BuildArguments(EnvironmentConfiguration environmentConfiguration, string workingDirectory, string outputFilePath, string prompt)
+        private static void AddArgument(ProcessStartInfo startInfo, string value)
         {
-            List<string> arguments = new List<string>();
-            arguments.Add("-NoProfile");
-            arguments.Add("-ExecutionPolicy");
-            arguments.Add("Bypass");
-            arguments.Add("-File");
-            arguments.Add(QuoteArgument(ResolveCodexCommand(environmentConfiguration)));
-            arguments.Add("exec");
-            arguments.Add("--full-auto");
-            arguments.Add("--skip-git-repo-check");
-            arguments.Add("-C");
-            arguments.Add(QuoteArgument(workingDirectory));
-            arguments.Add("-o");
-            arguments.Add(QuoteArgument(outputFilePath));
-            arguments.Add(QuoteArgument(prompt));
-            return string.Join(" ", arguments.ToArray());
+            startInfo.Arguments = string.IsNullOrWhiteSpace(startInfo.Arguments)
+                ? QuoteArgument(value)
+                : startInfo.Arguments + " " + QuoteArgument(value);
         }
 
         private static string ResolveCodexCommand(EnvironmentConfiguration environmentConfiguration)
@@ -1155,10 +1178,10 @@ if pointing would not help, append [POINT:none].";
             }
 
             string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            string defaultPowerShellScript = Path.Combine(appData, "npm", "codex.ps1");
-            if (File.Exists(defaultPowerShellScript))
+            string defaultCommandScript = Path.Combine(appData, "npm", "codex.cmd");
+            if (File.Exists(defaultCommandScript))
             {
-                return defaultPowerShellScript;
+                return defaultCommandScript;
             }
 
             return environmentConfiguration.CodexCommand;
@@ -1185,7 +1208,7 @@ if pointing would not help, append [POINT:none].";
 
         private static string QuoteArgument(string value)
         {
-            return "\"" + value.Replace("\"", "\\\"") + "\"";
+            return "\"" + (value ?? string.Empty).Replace("\"", "\\\"") + "\"";
         }
     }
 
@@ -2018,6 +2041,7 @@ if pointing would not help, append [POINT:none].";
 
         private async Task RunCodexFlowAsync(string prompt)
         {
+            List<string> temporaryImagePaths = null;
             string codexPrompt = CodexClient.RemoveTrigger(prompt);
             if (string.IsNullOrWhiteSpace(codexPrompt))
             {
@@ -2028,8 +2052,15 @@ if pointing would not help, append [POINT:none].";
             _promptTextBox.SelectionStart = _promptTextBox.TextLength;
             _promptTextBox.ScrollToCaret();
 
-            SetStatus("starting codex...", Color.FromArgb(235, 210, 120));
-            CodexRunResult result = await CodexClient.RunAsync(_environmentConfiguration, codexPrompt);
+            if (CodexClient.ShouldAttachScreens(prompt))
+            {
+                SetStatus("capturing screens for codex...", Color.FromArgb(235, 210, 120));
+                List<ScreenCaptureInfo> screenCaptures = ScreenCaptureService.CaptureAllScreens();
+                temporaryImagePaths = SaveCodexScreenCaptures(screenCaptures);
+            }
+
+            SetStatus(temporaryImagePaths != null && temporaryImagePaths.Count > 0 ? "starting codex with screens..." : "starting codex...", Color.FromArgb(235, 210, 120));
+            CodexRunResult result = await CodexClient.RunAsync(_environmentConfiguration, codexPrompt, temporaryImagePaths);
 
             string completionMessage = CodexClient.GetCompletionMessage();
             _responseTextBox.Text = completionMessage;
@@ -2041,6 +2072,37 @@ if pointing would not help, append [POINT:none].";
                 CompanionVisualState.Idle
             );
             await SpeakResponseAsync(completionMessage);
+            DeleteFilesQuietly(temporaryImagePaths);
+        }
+
+        private static List<string> SaveCodexScreenCaptures(IList<ScreenCaptureInfo> screenCaptures)
+        {
+            string screenCaptureDirectory = Path.Combine(Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..")), "codex output", "screen captures");
+            Directory.CreateDirectory(screenCaptureDirectory);
+
+            string timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
+            List<string> imagePaths = new List<string>();
+            foreach (ScreenCaptureInfo capture in screenCaptures)
+            {
+                string filePath = Path.Combine(screenCaptureDirectory, string.Format("zippy-codex-screen-{0}-screen{1}.jpg", timestamp, capture.ScreenNumber));
+                File.WriteAllBytes(filePath, capture.ImageBytes);
+                imagePaths.Add(filePath);
+            }
+
+            return imagePaths;
+        }
+
+        private static void DeleteFilesQuietly(IList<string> filePaths)
+        {
+            if (filePaths == null)
+            {
+                return;
+            }
+
+            foreach (string filePath in filePaths)
+            {
+                TryDeleteFile(filePath);
+            }
         }
 
         private void HandleSpeechPress()

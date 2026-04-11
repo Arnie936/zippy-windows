@@ -12,6 +12,7 @@ It is a native WinForms desktop assistant that:
 - sends screenshots directly to Anthropic for screen-aware replies
 - plays TTS directly through ElevenLabs
 - can hand off one-shot tasks to local Codex when you say `nimm codex`
+- can attach current screenshots to Codex when you say variants of `nimm codex mit screen`
 - uses `playground/` as the default workspace for Codex-generated files, projects, and experiments
 - stores Codex run logs in `codex output/`
 - shows a tray icon
@@ -78,7 +79,7 @@ windows/
 - `STT_PROVIDER`
   Optional. Use `elevenlabs` or `whisper`.
 - `CODEX_COMMAND`
-  Optional. Path or command name for the local Codex CLI PowerShell entry point.
+  Optional. Path or command name for the local Codex CLI command shim.
 - `CODEX_WORKDIR`
   Optional. Defaults to `playground/`.
 - `CODEX_TIMEOUT_SECONDS`
@@ -103,6 +104,7 @@ What works:
 - local settings
 - ElevenLabs playback
 - local Codex one-shot handoff via `nimm codex ...`
+- optional Codex handoff with attached screenshots via `nimm codex mit screen ...`
 - Codex writes its generated files into `playground/` by default
 - Codex output logs written to `codex output/`
 - tray app
