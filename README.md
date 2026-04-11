@@ -76,3 +76,4 @@ What is not built yet:
 - Codex run logs are written to `codex output/zippy-codex-YYYYMMDD-HHMMSS.txt`
 - The executable is built from `windows/Clicky.Windows.cs`
 - `windows/Clicky.Windows.exe` is generated locally and should not be committed
+- The repository is licensed under MIT. See `LICENSE` and `NOTICE.md` for current licensing and provenance notes.
