@@ -14,6 +14,7 @@ It is a native WinForms desktop assistant that:
 - can hand off one-shot tasks to local Codex when you say `nimm codex`
 - can attach current screenshots to Codex when you say variants of `nimm codex mit screen`
 - can hand off one-shot tasks to local Claude Code when you say `nimm claude code`
+- can hand off one-shot tasks to local OpenClaw when you say variants of `nimm openclaw`
 - uses `playground/` as the default workspace for Codex-generated files, projects, and experiments
 - stores Codex run logs in `codex output/`
 - shows a tray icon
@@ -27,6 +28,7 @@ It is a native WinForms desktop assistant that:
 - optional: a local Whisper Python setup if you want to use `STT_PROVIDER=whisper`
 - optional: a local Codex CLI install if you want to use the `nimm codex ...` handoff flow
 - optional: a local Claude Code CLI install if you want to use the `nimm claude code ...` handoff flow
+- optional: a local OpenClaw CLI install if you want to use the `nimm openclaw ...` handoff flow
 
 ## Quick Start
 
@@ -76,8 +78,12 @@ SOUL.md
    - `ELEVENLABS_VOICE_ID`
    - optional: `STT_PROVIDER` (`elevenlabs` or `whisper`)
    - optional: `CODEX_COMMAND`
+   - optional: `CLAUDE_CODE_COMMAND`
    - optional: `CODEX_WORKDIR`
    - optional: `CODEX_TIMEOUT_SECONDS`
+   - optional: `OPENCLAW_COMMAND`
+   - optional: `OPENCLAW_SESSION_KEY`
+   - optional: `OPENCLAW_TIMEOUT_SECONDS`
    - optional: `WHISPER_PYTHON`
    - optional: `WHISPER_MODEL`
    - optional: `WHISPER_LANGUAGE`
@@ -103,6 +109,12 @@ SOUL.md
   Optional. Defaults to `playground/`.
 - `CODEX_TIMEOUT_SECONDS`
   Optional. Timeout for one-shot Codex runs.
+- `OPENCLAW_COMMAND`
+  Optional. Path or command name for the local OpenClaw CLI command. Default: `openclaw`
+- `OPENCLAW_SESSION_KEY`
+  Optional. Agent id or agent session key for OpenClaw runs. Default: `main`
+- `OPENCLAW_TIMEOUT_SECONDS`
+  Optional. Timeout for one-shot OpenClaw runs.
 - `WHISPER_PYTHON`
   Optional. Python command used for local Whisper.
 - `WHISPER_MODEL`
@@ -127,6 +139,7 @@ What works:
 - local Codex one-shot handoff via `nimm codex ...`
 - optional Codex handoff with attached screenshots via `nimm codex mit screen ...`
 - local Claude Code one-shot handoff via `nimm claude code ...`
+- local OpenClaw one-shot handoff via `nimm openclaw ...`
 - Codex writes its generated files into `playground/` by default
 - Codex output logs written to `codex output/`
 - tray app
@@ -138,6 +151,8 @@ What works:
 - If Codex is not installed, the normal Zippy assistant still works. Only the Codex handoff flow is unavailable.
 - If Claude Code is installed locally, prompts that start with `nimm claude code ...` are handed off to a one-shot local Claude Code run.
 - If Claude Code is not installed, the normal Zippy assistant still works. Only the Claude Code handoff flow is unavailable.
+- If OpenClaw is installed locally, prompts that start with `nimm openclaw ...` are handed off to a one-shot local OpenClaw CLI run.
+- If OpenClaw is not configured, the normal Zippy assistant still works. Only the OpenClaw handoff flow is unavailable.
 
 ## Known Limitations
 
@@ -146,6 +161,7 @@ What works:
 - the Codex handoff is currently a one-shot background run, not a persistent multi-turn session
 - the Codex trigger is optimized for German speech variants around `nimm codex`
 - the Claude Code trigger is optimized for German speech variants around `nimm claude code` and common STT variants like `cloud code`
+- the OpenClaw trigger is optimized for German speech variants around `nimm openclaw` and common STT slips like `obenclau`, `openclau`, `onpenclaw`, or `orpenclaw`
 - speech and vision features depend on external API availability
 
 What is not built yet:
@@ -160,6 +176,7 @@ What is not built yet:
 - Codex uses `playground/` as its default working directory unless `CODEX_WORKDIR` is set
 - Codex run logs are written to `codex output/zippy-codex-YYYYMMDD-HHMMSS.txt`
 - Claude Code run logs are written to `codex output/zippy-claude-code-YYYYMMDD-HHMMSS.txt`
+- OpenClaw run logs are written to `codex output/zippy-openclaw-YYYYMMDD-HHMMSS.txt`
 - Zippy loads personality guidance from `SOUL.md` when that file exists
 - Zippy can already run parts of the workflow locally, but the full in-app assistant path is not yet fully local
 - The executable is built from `windows/Clicky.Windows.cs`
