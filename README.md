@@ -147,7 +147,7 @@ What works:
 
 ## With And Without Codex
 
-- If `codex.ps1` is available locally, prompts that start with `nimm codex ...` are handed off to a one-shot local Codex run.
+- If a local Codex CLI command is available, prompts that start with `nimm codex ...` are handed off to a one-shot local Codex run.
 - If Codex is not installed, the normal Zippy assistant still works. Only the Codex handoff flow is unavailable.
 - If Claude Code is installed locally, prompts that start with `nimm claude code ...` are handed off to a one-shot local Claude Code run.
 - If Claude Code is not installed, the normal Zippy assistant still works. Only the Claude Code handoff flow is unavailable.

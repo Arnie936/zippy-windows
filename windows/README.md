@@ -1,6 +1,6 @@
 # Zippy For Windows
 
-This is the native Windows client for Zippy. It calls Anthropic and ElevenLabs directly, supports ElevenLabs speech-to-text or local Whisper for speech input, and can hand one-shot tasks to a local Codex CLI run.
+This is the native Windows client for Zippy. It calls Anthropic and ElevenLabs directly, supports ElevenLabs speech-to-text or local Whisper for speech input, and can hand one-shot tasks to local Codex, Claude Code, or OpenClaw CLI runs.
 
 ## Requirements
 
@@ -10,6 +10,7 @@ This is the native Windows client for Zippy. It calls Anthropic and ElevenLabs d
 - optional: local Whisper if you want `STT_PROVIDER=whisper`
 - optional: local Codex CLI if you want the `nimm codex ...` handoff flow
 - optional: local Claude Code CLI if you want the `nimm claude code ...` handoff flow
+- optional: local OpenClaw CLI if you want the `nimm openclaw ...` handoff flow
 
 ## Local-First Direction
 
@@ -20,6 +21,7 @@ Available local pieces today:
 - local Whisper for speech-to-text
 - local Codex one-shot handoff
 - local Claude Code one-shot handoff
+- local OpenClaw one-shot handoff
 
 The current screenshot-aware assistant response still uses Anthropic, and spoken playback still uses ElevenLabs.
 
@@ -38,8 +40,9 @@ The intended local-first direction is a stack like local Whisper + local vision-
 - route prompts containing `nimm codex` to a local Codex one-shot run
 - attach screenshots to Codex for prompts like `nimm codex mit screen ...`
 - route prompts containing `nimm claude code` to a local Claude Code one-shot run
+- route prompts containing `nimm openclaw` to a local OpenClaw one-shot run
 - write Codex-generated files into `playground/` by default
-- write Codex run logs to `codex output/`
+- write Codex, Claude Code, and OpenClaw run logs to `codex output/`
 - keep a short conversation history in memory
 
 ## What does not exist yet
@@ -89,6 +92,9 @@ Or run:
    - optional: `CLAUDE_CODE_COMMAND`
    - optional: `CODEX_WORKDIR`
    - optional: `CODEX_TIMEOUT_SECONDS`
+   - optional: `OPENCLAW_COMMAND`
+   - optional: `OPENCLAW_SESSION_KEY`
+   - optional: `OPENCLAW_TIMEOUT_SECONDS`
    - optional: `WHISPER_PYTHON`
    - optional: `WHISPER_MODEL`
    - optional: `WHISPER_LANGUAGE`
@@ -102,6 +108,7 @@ Or run:
 9. To hand off a one-shot local Codex task, start the prompt with `nimm codex ...`.
 10. To hand off a Codex task with screenshots attached, use a phrase like `nimm codex mit screen ...`.
 11. To hand off a one-shot local Claude Code task, use a phrase like `nimm claude code ...`.
+12. To hand off a one-shot local OpenClaw task, use a phrase like `nimm openclaw ...`.
 
 Without Codex installed, Zippy still works for normal assistant tasks.
 Without local Whisper installed, Zippy still works if `STT_PROVIDER=elevenlabs`.
@@ -112,7 +119,7 @@ Without local Whisper installed, Zippy still works if `STT_PROVIDER=elevenlabs`.
 - `ELEVENLABS_API_KEY`
 - `ELEVENLABS_VOICE_ID`
 
-## Optional Whisper Settings
+## Optional Settings
 
 - `STT_PROVIDER`
 Default: `whisper`
@@ -124,6 +131,12 @@ Default: `claude`
 Default: `playground/` in the repo root above `windows/`
 - `CODEX_TIMEOUT_SECONDS`
 Default: `900`
+- `OPENCLAW_COMMAND`
+Default: `openclaw`
+- `OPENCLAW_SESSION_KEY`
+Default: `main`
+- `OPENCLAW_TIMEOUT_SECONDS`
+Default: `120`
 - `WHISPER_PYTHON`
 Default: `python`
 - `WHISPER_MODEL`
@@ -138,10 +151,13 @@ Default: `F8`
 - Settings are stored in `windows/data/settings.json`
 - Secrets live in `windows/.env` next to the executable
 - Codex uses `playground/` as its default working directory unless `CODEX_WORKDIR` is set
+- OpenClaw uses the configured agent or session key from `OPENCLAW_SESSION_KEY`
 - If the global push-to-talk key cannot be registered, Zippy still works with the on-screen hold button
 - If direct ElevenLabs playback fails, the app falls back to local Windows speech when possible
 - The first Whisper run can take longer if the selected model still needs to be downloaded locally
 - Codex runs are saved to `codex output/zippy-codex-YYYYMMDD-HHMMSS.txt`
+- Claude Code runs are saved to `codex output/zippy-claude-code-YYYYMMDD-HHMMSS.txt`
+- OpenClaw runs are saved to `codex output/zippy-openclaw-YYYYMMDD-HHMMSS.txt`
 - The app is built with the classic .NET Framework compiler already available on this machine
 - `Clicky.Windows.exe` is a local build artifact and should stay out of git
 
@@ -150,4 +166,5 @@ Default: `F8`
 - Windows-only
 - no installer yet
 - Codex runs are one-shot background jobs
+- Claude Code and OpenClaw runs are also one-shot background jobs
 - speech and vision features depend on external API availability

@@ -16,9 +16,11 @@ The app is a WinForms desktop client in `windows/` that:
 - calls ElevenLabs directly for TTS
 - can route one-shot requests to a local Codex CLI run when the prompt contains `nimm codex`
 - can route one-shot requests to a local Claude Code CLI run when the prompt contains `nimm claude code`
+- can route one-shot requests to a local OpenClaw CLI run when the prompt contains `nimm openclaw`
 - can attach screenshots to Codex runs for prompts like `nimm codex mit screen`
 - uses `playground/` in the repo root as the default Codex working directory
 - writes Codex run logs to `codex output/` in the repo root
+- writes Claude Code and OpenClaw run logs to `codex output/` in the repo root
 - stores non-secret local settings in `windows/data/settings.json`
 - uses a tray icon, a hold-to-talk button, and a global push-to-talk hotkey
 
