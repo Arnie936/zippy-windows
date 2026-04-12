@@ -1,170 +1,70 @@
-# Zippy For Windows
+# Zippy For Windows — Build & Setup
 
-This is the native Windows client for Zippy. It calls Anthropic and ElevenLabs directly, supports ElevenLabs speech-to-text or local Whisper for speech input, and can hand one-shot tasks to local Codex, Claude Code, or OpenClaw CLI runs.
+Build, configure, and run the native Windows client. For a feature overview, see the [root README](../README.md).
 
 ## Requirements
 
 - Windows
 - an Anthropic API key
 - an ElevenLabs API key and voice ID
-- optional: local Whisper if you want `STT_PROVIDER=whisper`
-- optional: local Codex CLI if you want the `nimm codex ...` handoff flow
-- optional: local Claude Code CLI if you want the `nimm claude code ...` handoff flow
-- optional: local OpenClaw CLI if you want the `nimm openclaw ...` handoff flow
+- optional: local Whisper (Python) if you want `STT_PROVIDER=whisper`
+- optional: local Codex CLI for `nimm codex ...`
+- optional: local Claude Code CLI for `nimm claude code ...`
+- optional: local OpenClaw CLI for `nimm openclaw ...`
 
-## Local-First Direction
+## Build
 
-Zippy can already run parts of its workflow locally, but the full in-app assistant path is not yet fully local.
-
-Available local pieces today:
-
-- local Whisper for speech-to-text
-- local Codex one-shot handoff
-- local Claude Code one-shot handoff
-- local OpenClaw one-shot handoff
-
-The current screenshot-aware assistant response still uses Anthropic, and spoken playback still uses ElevenLabs.
-
-The intended local-first direction is a stack like local Whisper + local vision-capable chat model + local TTS.
-
-## What works
-
-- system tray app
-- global push-to-talk hotkey
-- always-on mouse companion that follows the cursor
-- companion can drive to a detected on-screen target window or control when Claude returns a `[POINT:...]` tag
-- capture all screens and send them directly to Claude
-- speech input with microphone recording + ElevenLabs speech-to-text or local Whisper
-- show the answer in-app
-- play TTS directly through ElevenLabs when enabled
-- route prompts containing `nimm codex` to a local Codex one-shot run
-- attach screenshots to Codex for prompts like `nimm codex mit screen ...`
-- route prompts containing `nimm claude code` to a local Claude Code one-shot run
-- route prompts containing `nimm openclaw` to a local OpenClaw one-shot run
-- write Codex-generated files into `playground/` by default
-- write Codex, Claude Code, and OpenClaw run logs to `codex output/`
-- keep a short conversation history in memory
-
-## What does not exist yet
-
-- richer companion art and higher-end animation polish
-- onboarding video and polished desktop overlay behavior from the macOS app
-
-## Build It
-
-Double-click:
-
-`Build-Clicky.cmd`
-
-Or from `cmd.exe`:
+Double-click `Build-Clicky.cmd`, or from `cmd.exe`:
 
 ```cmd
-C:\Users\Arnold\Desktop\clip advanced\clicky\windows\Build-Clicky.cmd
+path\to\clicky\windows\Build-Clicky.cmd
 ```
 
-This compiles:
-
-- `Clicky.Windows.cs`
-
-into:
-
-- `Clicky.Windows.exe`
-
-## Start It
-
-Double-click:
-
-`Start-Clicky.cmd`
-
-Or run:
-
-- `Clicky.Windows.exe`
+This compiles `Clicky.Windows.cs` into `Clicky.Windows.exe` using the classic .NET Framework compiler already available on Windows.
 
 ## First Run
 
-1. Copy `.env.example` to `.env` in the same folder.
-2. Fill in:
-   - `ANTHROPIC_API_KEY`
-   - `ELEVENLABS_API_KEY`
-   - `ELEVENLABS_VOICE_ID`
-   - optional: `STT_PROVIDER` (`elevenlabs` or `whisper`)
-   - optional: `CODEX_COMMAND`
-   - optional: `CLAUDE_CODE_COMMAND`
-   - optional: `CODEX_WORKDIR`
-   - optional: `CODEX_TIMEOUT_SECONDS`
-   - optional: `OPENCLAW_COMMAND`
-   - optional: `OPENCLAW_SESSION_KEY`
-   - optional: `OPENCLAW_TIMEOUT_SECONDS`
-   - optional: `WHISPER_PYTHON`
-   - optional: `WHISPER_MODEL`
-   - optional: `WHISPER_LANGUAGE`
-   - optional: `PUSH_TO_TALK_KEY`
-3. Start the app.
-4. Click `reload .env`.
-5. Click `test apis`.
-6. Either type a prompt like `where is the button i should click?` and click `ask about my screen`, or hold `hold to talk`.
-7. For speech mode: hold the button while speaking, then release to transcribe.
-8. Or use the global key from `.env`, default `F8`: hold to speak, release to transcribe.
-9. To hand off a one-shot local Codex task, start the prompt with `nimm codex ...`.
-10. To hand off a Codex task with screenshots attached, use a phrase like `nimm codex mit screen ...`.
-11. To hand off a one-shot local Claude Code task, use a phrase like `nimm claude code ...`.
-12. To hand off a one-shot local OpenClaw task, use a phrase like `nimm openclaw ...`.
+1. Copy `.env.example` to `.env` in this folder.
+2. Fill in the required keys (see below).
+3. Run `Start-Clicky.cmd` (or `Clicky.Windows.exe` directly).
+4. Click `reload .env`, then `test apis`.
+5. Either type a prompt and click `ask about my screen`, or hold the `hold to talk` button / push-to-talk hotkey (default `F8`).
+6. To hand off a one-shot task, start the prompt with `nimm codex ...`, `nimm codex mit screen ...`, `nimm claude code ...`, or `nimm openclaw ...`.
 
-Without Codex installed, Zippy still works for normal assistant tasks.
-Without local Whisper installed, Zippy still works if `STT_PROVIDER=elevenlabs`.
+Without Codex/Claude Code/OpenClaw installed, the normal assistant still works — only the matching handoff flow is unavailable. Without local Whisper, set `STT_PROVIDER=elevenlabs`.
 
-## Required Keys
+## `.env` Variables
 
-- `ANTHROPIC_API_KEY`
-- `ELEVENLABS_API_KEY`
-- `ELEVENLABS_VOICE_ID`
+### Required
 
-## Optional Settings
+- `ANTHROPIC_API_KEY` — screenshot + vision assistant flow
+- `ELEVENLABS_API_KEY` — STT and TTS
+- `ELEVENLABS_VOICE_ID` — TTS voice
 
-- `STT_PROVIDER`
-Default: `whisper`
-- `CODEX_COMMAND`
-Default: `codex.cmd`
-- `CLAUDE_CODE_COMMAND`
-Default: `claude`
-- `CODEX_WORKDIR`
-Default: `playground/` in the repo root above `windows/`
-- `CODEX_TIMEOUT_SECONDS`
-Default: `900`
-- `OPENCLAW_COMMAND`
-Default: `openclaw`
-- `OPENCLAW_SESSION_KEY`
-Default: `main`
-- `OPENCLAW_TIMEOUT_SECONDS`
-Default: `120`
-- `WHISPER_PYTHON`
-Default: `python`
-- `WHISPER_MODEL`
-Default: `base`
-- `WHISPER_LANGUAGE`
-Default: `de`
-- `PUSH_TO_TALK_KEY`
-Default: `F8`
+### Optional
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `STT_PROVIDER` | `whisper` | `elevenlabs` or `whisper` |
+| `CODEX_COMMAND` | `codex.cmd` | Path or name of local Codex CLI |
+| `CLAUDE_CODE_COMMAND` | `claude` | Path or name of local Claude Code CLI |
+| `CODEX_WORKDIR` | `playground/` (repo root) | Working dir for Codex runs |
+| `CODEX_TIMEOUT_SECONDS` | `900` | Timeout for Codex runs |
+| `OPENCLAW_COMMAND` | `openclaw` | Path or name of local OpenClaw CLI |
+| `OPENCLAW_SESSION_KEY` | `main` | Agent id / session key for OpenClaw |
+| `OPENCLAW_TIMEOUT_SECONDS` | `120` | Timeout for OpenClaw runs |
+| `WHISPER_PYTHON` | `python` | Python command for local Whisper |
+| `WHISPER_MODEL` | `base` | Whisper model name |
+| `WHISPER_LANGUAGE` | `de` | Speech language hint |
+| `PUSH_TO_TALK_KEY` | `F8` | Global push-to-talk hotkey |
 
 ## Notes
 
-- Settings are stored in `windows/data/settings.json`
-- Secrets live in `windows/.env` next to the executable
-- Codex uses `playground/` as its default working directory unless `CODEX_WORKDIR` is set
-- OpenClaw uses the configured agent or session key from `OPENCLAW_SESSION_KEY`
-- If the global push-to-talk key cannot be registered, Zippy still works with the on-screen hold button
+- Secrets live in `windows/.env` next to the executable — never commit this file
+- Local settings are stored in `windows/data/settings.json`
+- Codex writes generated files to `playground/` unless `CODEX_WORKDIR` is set
+- Run logs: `codex output/zippy-codex-*.txt`, `zippy-claude-code-*.txt`, `zippy-openclaw-*.txt`
+- If the global push-to-talk key cannot be registered, the on-screen hold button still works
 - If direct ElevenLabs playback fails, the app falls back to local Windows speech when possible
-- The first Whisper run can take longer if the selected model still needs to be downloaded locally
-- Codex runs are saved to `codex output/zippy-codex-YYYYMMDD-HHMMSS.txt`
-- Claude Code runs are saved to `codex output/zippy-claude-code-YYYYMMDD-HHMMSS.txt`
-- OpenClaw runs are saved to `codex output/zippy-openclaw-YYYYMMDD-HHMMSS.txt`
-- The app is built with the classic .NET Framework compiler already available on this machine
+- The first Whisper run can take longer if the selected model still needs to download
 - `Clicky.Windows.exe` is a local build artifact and should stay out of git
-
-## Known Limitations
-
-- Windows-only
-- no installer yet
-- Codex runs are one-shot background jobs
-- Claude Code and OpenClaw runs are also one-shot background jobs
-- speech and vision features depend on external API availability
