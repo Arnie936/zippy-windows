@@ -62,7 +62,9 @@ SOUL.md
 
 ## Credits
 
-Zippy For Windows started as a clone of [farzaa/clicky](https://github.com/farzaa/clicky) — the original macOS/Swift menu-bar AI assistant by Farza Majeed (MIT). The Windows version is a rewrite in C# / WinForms, but the concept, the always-on cursor companion, and the overall voice + screenshot + Claude workflow all trace back to that project. Huge thanks for the inspiration.
+The core idea of an **always-on companion sitting next to the mouse cursor** is inspired by [farzaa/clicky](https://github.com/farzaa/clicky), a macOS/Swift menu-bar assistant by Farza Majeed (MIT). Thanks for that spark.
+
+Zippy For Windows is largely a rewrite in C# / WinForms with its own architecture and a much larger feature set — notably orchestration of three local CLI agents (Codex, Claude Code, OpenClaw), direct Anthropic and ElevenLabs integrations, local Whisper STT, and a tray + hotkey workflow for Windows. The repo originally started from a local clone of the upstream, so small remnants (folder names, minor snippets) may still trace back to it.
 
 See [`NOTICE.md`](NOTICE.md) for details on origin and attribution.
 

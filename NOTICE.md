@@ -2,26 +2,20 @@
 
 ## Origin & Attribution
 
-Zippy For Windows began as a clone of [farzaa/clicky](https://github.com/farzaa/clicky), a macOS/Swift menu-bar AI assistant by Farza Majeed, licensed under MIT.
+Zippy For Windows is largely a rewrite in C# / WinForms. The core concept borrowed from [farzaa/clicky](https://github.com/farzaa/clicky) (macOS/Swift, by Farza Majeed, MIT) is the idea of an **always-on assistant that lives right next to the mouse cursor**. The repo originally started from a local clone of that project, so small remnants (folder names, minor snippets) may still trace back to it; the upstream MIT license therefore continues to apply to anything still derived from it.
 
-The original project provided the initial inspiration and concept:
+Everything else — architecture, language, platform, and feature set — is original work:
 
-- an always-on cursor/menu-bar companion
-- push-to-talk voice capture
-- screenshot-aware chat with Claude
-- ElevenLabs text-to-speech playback
-
-This repository has since been substantially reshaped into a native Windows desktop assistant written from scratch in C# / WinForms. It replaces the macOS/Swift codebase, the Cloudflare Worker proxy architecture, and the AssemblyAI transcription pipeline with:
-
-- a native WinForms desktop app (`Clicky.Windows.cs`)
-- direct Anthropic and ElevenLabs integrations from the client
-- ElevenLabs or local Whisper for speech-to-text
-- local Codex, Claude Code, and OpenClaw one-shot handoffs
+- a native WinForms desktop app (`Clicky.Windows.cs`) instead of a macOS/Swift menu-bar app
+- direct Anthropic and ElevenLabs integrations from the client (no Cloudflare Worker proxy)
+- ElevenLabs or local Whisper for speech-to-text (no AssemblyAI pipeline)
+- orchestration of three local CLI agents — Codex, Claude Code, and OpenClaw — including screenshot handoffs (`nimm codex mit screen ...`); the upstream project has no agent orchestration
+- tray icon, global push-to-talk hotkey, and German speech trigger phrases
 - a local `.env` + `data/settings.json` configuration model
 
 ## Third-Party Code & Assets
 
-The original clicky project is licensed under MIT. Its copyright notice is retained in [`LICENSE`](LICENSE) alongside the current project's copyright. If any third-party code, assets, or notices from the original project are still present in this repository, their original attribution and license terms continue to apply.
+The original clicky project is licensed under MIT. Its copyright notice is retained in [`LICENSE`](LICENSE) alongside the current project's copyright. Where small remnants from the original project remain (e.g. folder names or minor snippets), their original MIT attribution and license terms continue to apply.
 
 ## License
 
