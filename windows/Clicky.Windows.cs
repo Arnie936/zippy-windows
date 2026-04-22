@@ -131,11 +131,6 @@ namespace ClickyWindows
         public string ClaudeCodeCommand { get; set; }
         public string CodexWorkingDirectory { get; set; }
         public int CodexTimeoutSeconds { get; set; }
-        public string OpenClawCommand { get; set; }
-        public string OpenClawGatewayUrl { get; set; }
-        public string OpenClawGatewayToken { get; set; }
-        public string OpenClawSessionKey { get; set; }
-        public int OpenClawTimeoutSeconds { get; set; }
         public string WhisperPythonCommand { get; set; }
         public string WhisperModel { get; set; }
         public string WhisperLanguage { get; set; }
@@ -188,11 +183,6 @@ namespace ClickyWindows
                 ClaudeCodeCommand = GetValueOrDefault(envValues, "CLAUDE_CODE_COMMAND", "claude"),
                 CodexWorkingDirectory = GetValueOrDefault(envValues, "CODEX_WORKDIR", GetDefaultCodexWorkingDirectory()),
                 CodexTimeoutSeconds = GetIntValueOrDefault(envValues, "CODEX_TIMEOUT_SECONDS", 900),
-                OpenClawCommand = GetValueOrDefault(envValues, "OPENCLAW_COMMAND", "openclaw"),
-                OpenClawGatewayUrl = GetValueOrDefault(envValues, "OPENCLAW_GATEWAY_URL", "ws://127.0.0.1:18789"),
-                OpenClawGatewayToken = GetValueOrEmpty(envValues, "GATEWAY_TOKEN"),
-                OpenClawSessionKey = GetValueOrDefault(envValues, "OPENCLAW_SESSION_KEY", "main"),
-                OpenClawTimeoutSeconds = GetIntValueOrDefault(envValues, "OPENCLAW_TIMEOUT_SECONDS", 120),
                 WhisperPythonCommand = GetValueOrDefault(envValues, "WHISPER_PYTHON", "python"),
                 WhisperModel = GetValueOrDefault(envValues, "WHISPER_MODEL", "base"),
                 WhisperLanguage = GetValueOrDefault(envValues, "WHISPER_LANGUAGE", "de"),
@@ -1081,12 +1071,6 @@ if pointing would not help, append [POINT:none].";
         public string OutputFilePath { get; set; }
     }
 
-    internal sealed class OpenClawRunResult
-    {
-        public string OutputFilePath { get; set; }
-        public string ResponseText { get; set; }
-    }
-
     internal static class CodexClient
     {
         private const string CompletionMessage = "codex session ist jetzt abgeschlossen";
@@ -1455,218 +1439,6 @@ if pointing would not help, append [POINT:none].";
         private static string QuoteArgument(string value)
         {
             return "\"" + (value ?? string.Empty).Replace("\"", "\\\"") + "\"";
-        }
-    }
-
-    internal static class OpenClawClient
-    {
-        private const string CompletionMessage = "openclaw session ist jetzt abgeschlossen";
-        private static readonly Regex TriggerRegex = new Regex(@"\b(?:nimm|nim|nehm|mit)\s+(?:den\s+)?(?:(?:open|oben|orpen|onpen|oppen)\s*cl(?:aw|au)|openclaw|klaus|claus|claws)\b[\s,:-]*", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-
-        public static bool IsTriggered(string prompt)
-        {
-            return !string.IsNullOrWhiteSpace(prompt) && TriggerRegex.IsMatch(NormalizePrompt(prompt));
-        }
-
-        public static string RemoveTrigger(string prompt)
-        {
-            if (string.IsNullOrWhiteSpace(prompt))
-            {
-                return string.Empty;
-            }
-
-            return TriggerRegex.Replace(NormalizePrompt(prompt), string.Empty, 1).Trim();
-        }
-
-        public static string GetCompletionMessage()
-        {
-            return CompletionMessage;
-        }
-
-        public static async Task<OpenClawRunResult> RunAsync(EnvironmentConfiguration environmentConfiguration, string prompt)
-        {
-            string command = ResolveCommand(environmentConfiguration);
-            if (string.IsNullOrWhiteSpace(command))
-            {
-                throw new InvalidOperationException("OPENCLAW_COMMAND is missing.");
-            }
-
-            string outputDirectory = GetOutputDirectory();
-            Directory.CreateDirectory(outputDirectory);
-            string timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
-            string outputFilePath = Path.Combine(outputDirectory, "zippy-openclaw-" + timestamp + ".txt");
-
-            ProcessStartInfo startInfo = new ProcessStartInfo
-            {
-                FileName = "cmd.exe",
-                WorkingDirectory = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..")),
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true
-            };
-            AddArgument(startInfo, "/c");
-            AddArgument(startInfo, command);
-            AddArgument(startInfo, "agent");
-            AddArgument(startInfo, "--agent");
-            AddArgument(startInfo, ResolveAgentId(environmentConfiguration));
-            AddArgument(startInfo, "--message");
-            AddArgument(startInfo, prompt ?? string.Empty);
-            AddArgument(startInfo, "--timeout");
-            AddArgument(startInfo, environmentConfiguration.OpenClawTimeoutSeconds.ToString());
-
-            using (Process process = new Process())
-            {
-                process.StartInfo = startInfo;
-
-                if (!process.Start())
-                {
-                    throw new InvalidOperationException("Failed to start OpenClaw.");
-                }
-
-                Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync();
-                Task<string> standardErrorTask = process.StandardError.ReadToEndAsync();
-                bool exited = await Task.Run(() => process.WaitForExit(environmentConfiguration.OpenClawTimeoutSeconds * 1000 + 15000)).ConfigureAwait(false);
-
-                if (!exited)
-                {
-                    try
-                    {
-                        process.Kill();
-                    }
-                    catch
-                    {
-                    }
-
-                    throw new InvalidOperationException("OpenClaw timed out before finishing.");
-                }
-
-                string standardOutput = await standardOutputTask.ConfigureAwait(false);
-                string standardError = await standardErrorTask.ConfigureAwait(false);
-                string responseText = string.IsNullOrWhiteSpace(standardOutput) ? string.Empty : standardOutput.Trim();
-
-                WriteOutputFile(
-                    outputFilePath,
-                    command,
-                    ResolveAgentId(environmentConfiguration),
-                    prompt,
-                    process.ExitCode,
-                    standardOutput,
-                    standardError);
-
-                if (process.ExitCode != 0)
-                {
-                    string detail = string.IsNullOrWhiteSpace(standardError) ? standardOutput : standardError;
-                    throw new InvalidOperationException(string.IsNullOrWhiteSpace(detail)
-                        ? "OpenClaw failed. Check the output file: " + outputFilePath
-                        : detail.Trim());
-                }
-
-                if (string.IsNullOrWhiteSpace(responseText))
-                {
-                    responseText = CompletionMessage;
-                }
-
-                return new OpenClawRunResult
-                {
-                    OutputFilePath = outputFilePath,
-                    ResponseText = responseText
-                };
-            }
-        }
-
-        private static string NormalizePrompt(string prompt)
-        {
-            string normalized = prompt.ToLowerInvariant();
-            normalized = normalized.Replace("nehm", "nimm");
-            normalized = normalized.Replace("nehm", "nimm");
-            normalized = normalized.Replace("nimm", "nimm");
-            normalized = normalized.Replace("obenclaw", "openclaw");
-            normalized = normalized.Replace("obenclau", "openclaw");
-            normalized = normalized.Replace("oben claw", "openclaw");
-            normalized = normalized.Replace("oben clau", "openclaw");
-            normalized = normalized.Replace("openclo", "openclaw");
-            normalized = normalized.Replace("openclau", "openclaw");
-            normalized = normalized.Replace("open claw", "openclaw");
-            normalized = normalized.Replace("open clau", "openclaw");
-            normalized = normalized.Replace("orpenclaw", "openclaw");
-            normalized = normalized.Replace("orpenclau", "openclaw");
-            normalized = normalized.Replace("orpen claw", "openclaw");
-            normalized = normalized.Replace("orpen clau", "openclaw");
-            normalized = normalized.Replace("onpenclaw", "openclaw");
-            normalized = normalized.Replace("onpenclau", "openclaw");
-            normalized = normalized.Replace("onpen claw", "openclaw");
-            normalized = normalized.Replace("onpen clau", "openclaw");
-            normalized = normalized.Replace("oppenclaw", "openclaw");
-            normalized = normalized.Replace("oppenclau", "openclaw");
-            normalized = normalized.Replace("oppen claw", "openclaw");
-            normalized = normalized.Replace("oppen clau", "openclaw");
-            normalized = normalized.Replace("open claww", "openclaw");
-            normalized = normalized.Replace("claus", "klaus");
-            normalized = normalized.Replace("claws", "klaus");
-            normalized = Regex.Replace(normalized, @"\s+", " ").Trim();
-            return normalized;
-        }
-
-        private static string ResolveCommand(EnvironmentConfiguration environmentConfiguration)
-        {
-            if (!string.IsNullOrWhiteSpace(environmentConfiguration.OpenClawCommand) && File.Exists(environmentConfiguration.OpenClawCommand))
-            {
-                return environmentConfiguration.OpenClawCommand;
-            }
-
-            return environmentConfiguration.OpenClawCommand;
-        }
-
-        private static string ResolveAgentId(EnvironmentConfiguration environmentConfiguration)
-        {
-            string configuredValue = string.IsNullOrWhiteSpace(environmentConfiguration.OpenClawSessionKey)
-                ? "main"
-                : environmentConfiguration.OpenClawSessionKey.Trim();
-            string[] parts = configuredValue.Split(new[] { ':' }, StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length >= 2 && string.Equals(parts[0], "agent", StringComparison.OrdinalIgnoreCase))
-            {
-                return parts[1];
-            }
-
-            return configuredValue;
-        }
-
-        private static void AddArgument(ProcessStartInfo startInfo, string value)
-        {
-            startInfo.Arguments = string.IsNullOrWhiteSpace(startInfo.Arguments)
-                ? QuoteArgument(value)
-                : startInfo.Arguments + " " + QuoteArgument(value);
-        }
-
-        private static string QuoteArgument(string value)
-        {
-            return "\"" + (value ?? string.Empty).Replace("\"", "\\\"") + "\"";
-        }
-
-        private static string GetOutputDirectory()
-        {
-            return Path.Combine(Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..")), "codex output");
-        }
-
-        private static void WriteOutputFile(string outputFilePath, string command, string agentId, string prompt, int exitCode, string standardOutput, string standardError)
-        {
-            StringBuilder builder = new StringBuilder();
-            builder.AppendLine("zippy openclaw run");
-            builder.AppendLine("timestamp: " + DateTime.Now.ToString("O"));
-            builder.AppendLine("command: " + command);
-            builder.AppendLine("agent: " + agentId);
-            builder.AppendLine("exit_code: " + exitCode.ToString());
-            builder.AppendLine();
-            builder.AppendLine("prompt:");
-            builder.AppendLine(prompt);
-            builder.AppendLine();
-            builder.AppendLine("stdout:");
-            builder.AppendLine(string.IsNullOrWhiteSpace(standardOutput) ? "<empty>" : standardOutput.Trim());
-            builder.AppendLine();
-            builder.AppendLine("stderr:");
-            builder.AppendLine(string.IsNullOrWhiteSpace(standardError) ? "<empty>" : standardError.Trim());
-            File.WriteAllText(outputFilePath, builder.ToString(), Encoding.UTF8);
         }
     }
 
@@ -2447,12 +2219,6 @@ if pointing would not help, append [POINT:none].";
                 ReloadEnvironmentConfiguration();
                 SetCompanionState(CompanionVisualState.Thinking);
 
-                if (OpenClawClient.IsTriggered(prompt))
-                {
-                    await RunOpenClawFlowAsync(prompt);
-                    return;
-                }
-
                 if (ClaudeCodeClient.IsTriggered(prompt))
                 {
                     await RunClaudeCodeFlowAsync(prompt);
@@ -2572,36 +2338,6 @@ if pointing would not help, append [POINT:none].";
                 CompanionVisualState.Idle
             );
             await SpeakResponseAsync(completionMessage);
-        }
-
-        private async Task RunOpenClawFlowAsync(string prompt)
-        {
-            string openClawPrompt = OpenClawClient.RemoveTrigger(prompt);
-            if (string.IsNullOrWhiteSpace(openClawPrompt))
-            {
-                throw new InvalidOperationException("Say what OpenClaw should do after 'nimm openclaw'.");
-            }
-
-            _promptTextBox.Text = openClawPrompt;
-            _promptTextBox.SelectionStart = _promptTextBox.TextLength;
-            _promptTextBox.ScrollToCaret();
-
-            SetStatus("starting openclaw...", Color.FromArgb(235, 210, 120));
-            OpenClawRunResult result = await OpenClawClient.RunAsync(_environmentConfiguration, openClawPrompt);
-
-            string responseText = string.IsNullOrWhiteSpace(result.ResponseText)
-                ? OpenClawClient.GetCompletionMessage()
-                : result.ResponseText.Trim();
-            _responseTextBox.Text = responseText;
-            AddConversationTurn(openClawPrompt, responseText);
-            SetStatus("openclaw done, saved to codex output", Color.FromArgb(93, 212, 136));
-            ShowCompanionMessage(
-                responseText,
-                _settings.SpeakResponses ? CompanionVisualState.Speaking : CompanionVisualState.Idle,
-                _settings.SpeakResponses ? 9000 : 7200,
-                CompanionVisualState.Idle
-            );
-            await SpeakResponseAsync(responseText);
         }
 
         private static List<string> SaveCodexScreenCaptures(IList<ScreenCaptureInfo> screenCaptures)
